@@ -1,6 +1,18 @@
-# Pluralófono TensorFlow
+# Pluralófono 4: Theremin de dedos
 
-Pluralófono es una aplicación web interactiva que permite controlar la generación de sonidos mediante gestos de la mano capturados por la webcam, utilizando inteligencia artificial y tecnologías modernas de la web.
+**Pluralófono 4: Theremin de dedos** es una aplicación web interactiva que permite controlar la generación de sonidos mediante gestos de la mano capturados por la webcam, utilizando inteligencia artificial y tecnologías modernas de la web.
+
+## Datos técnicos
+
+- **Stack principal:** TypeScript, Vite, TensorFlow.js, MediaPipe, Web Audio API, fingerpose
+- **Modelo de manos:** @tensorflow-models/hand-pose-detection (MediaPipe Hands)
+- **Reconocimiento de gestos:** fingerpose + lógica personalizada
+- **Audio:** Web Audio API, síntesis por osciladores independientes por dedo
+- **Visualización:** Canvas 2D, trailing effect
+- **Resolución recomendada:** 640x480 px
+- **Requisitos:** Navegador moderno, webcam
+- **FPS objetivo:** 30+ (dependiendo del hardware)
+- **Docker-ready:** Sí, build estático para despliegue
 
 ## ¿Cómo funciona?
 
