@@ -3,6 +3,7 @@ import * as handdetection from "@tensorflow-models/hand-pose-detection";
 import "@tensorflow/tfjs-backend-webgl";
 import * as fp from "fingerpose";
 import { Camera } from "./camera";
+import { FINGER_NAMES, FINGER_WAVES, FingerName } from "./shared/fingerOscConfig";
 import Logger from "./shared/logger";
 import Oscillator from "./shared/oscilator";
 import {
@@ -21,9 +22,11 @@ class Pluramotionofono {
   camera!: Camera;
   context!: AudioContext;
   rafId!: number;
-  oscillator!: { Left: Oscillator | null; Right: Oscillator | null };
-  inited: { Left: boolean; Right: boolean };
+  // Osciladores por mano y dedo
+  oscillators: { [hand: string]: { [finger in FingerName]?: Oscillator } } = { Left: {}, Right: {} };
   GE: fp.GestureEstimator;
+  inited: any;
+  oscillator: any;
 
   private constructor(_camera: Camera, _detector: handdetection.HandDetector) {
     this.context = new AudioContext();
@@ -37,8 +40,16 @@ class Pluramotionofono {
       indexUpSign,
       middleUpSign,
     ]);
-    this.inited = { Left: false, Right: false };
-    this.oscillator = { Left: null, Right: null };
+    // Inicializa osciladores por dedo y mano
+    ["Left", "Right"].forEach(hand => {
+      FINGER_NAMES.forEach(finger => {
+        const osc = new Oscillator(this.context);
+        osc.setWave(FINGER_WAVES[finger]);
+        osc.setGain(0);
+        osc.start();
+        this.oscillators[hand][finger] = osc;
+      });
+    });
   }
 
   static async create() {
@@ -73,7 +84,7 @@ class Pluramotionofono {
       const ry = Camera.getRelativeY(y);
       const dx = rx > 0.5
       Logger.oneline(Logger.DEBUG, "audio", `reproduciendo oscilador: ${rx} ${ry}`);
-      this.oscillator[hand]?.setFrequency(ry);
+      this.oscillator[hand]?.setFrequency(Math.min(1, Math.abs(ry ? ry : 0.001)));
       this.oscillator[hand]?.setGain(Math.min(1, Math.abs(rx)));
     }
   }
@@ -97,30 +108,42 @@ class Pluramotionofono {
       const hands = await this.detector.estimateHands(this.camera.video, {
         flipHorizontal: false,
       });
+      // Reinicia todos los osciladores en silencio
+      ["Left", "Right"].forEach(hand => {
+        FINGER_NAMES.forEach(finger => {
+          this.oscillators[hand][finger]?.setGain(0);
+        });
+      });
       for (const hand of hands) {
         Logger.debug("render", hand);
-        if(hand.score < 0.95) continue;
-        const landmark = hand.keypoints3D?.map((value) => [
-          value.x,
-          value.y,
-          value.z,
-        ]);
-        const estimatedGestures = this.GE.estimate(landmark, 7.5);
-        if (estimatedGestures.gestures.length > 0) {
-          const maxEstimated = estimatedGestures.gestures.reduce((max, p) =>
-            p.score > max.score ? p : max
-          );
-          if (maxEstimated.name == "open_hand") {
-            const { x, y } = hand.keypoints.find((k) => k.name === "wrist")!;
-            this.playSound(x, y, hand.handedness);
+        if (hand.score < 0.95) continue;
+        // Por cada dedo, si está extendido, activa su oscilador
+        // keypoints: 0=wrist, 1-4=thumb, 5-8=index, 9-12=middle, 13-16=ring, 17-20=pinky
+        const fingerIndices = {
+          Thumb: [1, 2, 3, 4],
+          Index: [5, 6, 7, 8],
+          Middle: [9, 10, 11, 12],
+          Ring: [13, 14, 15, 16],
+          Pinky: [17, 18, 19, 20]
+        };
+        FINGER_NAMES.forEach(finger => {
+          const indices = fingerIndices[finger];
+          if (!hand.keypoints) return;
+          // Considera extendido si la punta está lejos de la base
+          const base = hand.keypoints[indices[0]];
+          const tip = hand.keypoints[indices[3]];
+          if (!base || !tip) return;
+          const dist = Math.sqrt((tip.x - base.x) ** 2 + (tip.y - base.y) ** 2);
+          const extended = dist > 0.09; // Ajusta este umbral si es necesario
+          if (extended) {
+            // Controla frecuencia y ganancia según posición Y y X de la punta
+            const rx = Camera.getRelativeX(tip.x);
+            const ry = Camera.getRelativeY(tip.y);
+            const osc = this.oscillators[hand.handedness][finger];
+            osc?.setFrequency(Math.min(1, Math.abs(1 - ry ? ry : 0.001))); // Arriba=agudo, abajo=grave
+            osc?.setGain(Math.min(1, Math.abs(1 - rx)));
           }
-          if (maxEstimated.name == "closed_hand") {
-            this.stopSound(hand.handedness);
-          }
-          if (maxEstimated.name == "index_up") {
-            this.changeSynth(hand.handedness, "sawtooth");
-          }
-        }
+        });
       }
       this.camera.drawVideo();
     } catch (error) {

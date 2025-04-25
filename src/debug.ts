@@ -73,7 +73,7 @@ class Pluramotionofono {
       const ry = Camera.getRelativeY(y);
       const dx = rx > 0.5
       Logger.oneline(Logger.DEBUG, "audio", `reproduciendo oscilador: ${rx} ${ry}`);
-      this.oscillator[hand]?.setFrequency(ry);
+      this.oscillator[hand]?.setFrequency(Math.min(1, Math.abs(ry)));
       this.oscillator[hand]?.setGain(Math.min(1, Math.abs(rx)));
     }
   }
