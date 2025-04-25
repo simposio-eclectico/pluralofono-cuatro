@@ -159,5 +159,7 @@ class Pluramotionofono {
   }
 }
 
-const pmf = await Pluramotionofono.create();
-pmf.init();
+(async () => {
+  const pmf = await Pluramotionofono.create();
+  pmf.init();
+})();
