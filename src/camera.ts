@@ -1,8 +1,8 @@
 import { Points, ScatterGL } from "scatter-gl";
-import * as params from "./shared/params";
-import { isMobile } from "./shared/mobile";
-import { createScatterGLContext } from "./shared/scatter";
 import Logger from "./shared/logger";
+import { isMobile } from "./shared/mobile";
+import * as params from "./shared/params";
+import { createScatterGLContext } from "./shared/scatter";
 
 export interface Point {
   x: number;
@@ -50,12 +50,8 @@ const fingerLookupIndices: FingerIndices = {
   pinky: { indices: [0, 17, 18, 19, 20], color: "#ff9900" },
 }; // for rendering each finger as a polyline
 
-const scatterGLCtxtLeftHand = createScatterGLContext(
-  "#scatter-gl-left"
-);
-const scatterGLCtxtRightHand = createScatterGLContext(
-  "#scatter-gl-right"
-);
+const scatterGLCtxtLeftHand = document.querySelector("#scatter-gl-left") ? createScatterGLContext("#scatter-gl-left") : null;
+const scatterGLCtxtRightHand = document.querySelector("#scatter-gl-right") ? createScatterGLContext("#scatter-gl-right") : null;
 
 export class Camera {
   video: HTMLVideoElement;
@@ -122,13 +118,44 @@ export class Camera {
   }
 
   drawVideo() {
-    this.videoContext.drawImage(
-      this.video,
-      0,
-      0,
-      this.video.videoWidth,
-      this.video.videoHeight
-    );
+    this.drawPolygonFilter();
+  }
+
+  /**
+   * Dibuja el video con un filtro poligonal retro (pixelado + posterización de color)
+   */
+  drawPolygonFilter(pixelSize: number = 18, colorLevels: number = 4) {
+    const width = this.video.videoWidth;
+    const height = this.video.videoHeight;
+    if (!width || !height) return;
+    // Dibujar el video a baja resolución
+    this.videoContext.drawImage(this.video, 0, 0, width, height);
+    const imageData = this.videoContext.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    // Pixelado: recorrer bloques
+    for (let y = 0; y < height; y += pixelSize) {
+      for (let x = 0; x < width; x += pixelSize) {
+        const i = (y * width + x) * 4;
+        // Posterización (reduce niveles de color)
+        const r = Math.floor(data[i] / (256 / colorLevels)) * (256 / colorLevels);
+        const g = Math.floor(data[i+1] / (256 / colorLevels)) * (256 / colorLevels);
+        const b = Math.floor(data[i+2] / (256 / colorLevels)) * (256 / colorLevels);
+        // Rellenar bloque
+        for (let dy = 0; dy < pixelSize; dy++) {
+          for (let dx = 0; dx < pixelSize; dx++) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx < width && ny < height) {
+              const ni = (ny * width + nx) * 4;
+              data[ni] = r;
+              data[ni+1] = g;
+              data[ni+2] = b;
+            }
+          }
+        }
+      }
+    }
+    this.videoContext.putImageData(imageData, 0, 0);
   }
 
   clearVideo() {
@@ -162,6 +189,14 @@ export class Camera {
    * @param ctxt Scatter GL context to render 3D keypoints to.
    */
   drawResult(hand: Hand, ctxt: Context) {
+    // --- Estela: dibuja un rectángulo negro semi-transparente sobre el canvas ---
+    this.videoContext.save();
+    this.videoContext.globalAlpha = 0.15; // Ajusta para controlar la "longitud" de la estela
+    this.videoContext.fillStyle = "#000";
+    this.videoContext.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.videoContext.restore();
+
+    // Dibuja keypoints y líneas normalmente
     if (hand.keypoints != null) {
       this.drawKeypoints(hand.keypoints, hand.handedness);
     }
@@ -234,9 +269,9 @@ export class Camera {
     ctxt.scatterGL.setPointColorer((i) => {
       if (keypoints[i] == null || keypoints[i].score < scoreThreshold) {
         // hide anchor points and low-confident points.
-        return "#ffffff";
+        return "#000000";
       }
-      return handedness === "Left" ? "#ff0000" : "#0000ff";
+      return handedness === "Left" ? "#000000" : "#000000";
     });
 
     if (!ctxt.scatterGLHasInitialized) {

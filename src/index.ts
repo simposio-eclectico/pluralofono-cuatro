@@ -1,8 +1,10 @@
-import "@tensorflow/tfjs-backend-webgl";
 import * as mpHands from "@mediapipe/hands";
 import * as handdetection from "@tensorflow-models/hand-pose-detection";
+import "@tensorflow/tfjs-backend-webgl";
 import * as fp from "fingerpose";
-import { Camera, Point } from "./camera";
+import { Camera } from "./camera";
+import Logger from "./shared/logger";
+import Oscillator from "./shared/oscilator";
 import {
   closedHandSign,
   indexUpSign,
@@ -11,8 +13,6 @@ import {
   rootSign,
   secondSign,
 } from "./shared/signs";
-import Oscillator from "./shared/oscilator";
-import Logger from "./shared/logger";
 Logger.setLevels(["debug", "log", "info", "warn", "error"]);
 Logger.setOnly(["audio"]);
 
@@ -74,7 +74,7 @@ class Pluramotionofono {
       const dx = rx > 0.5
       Logger.oneline(Logger.DEBUG, "audio", `reproduciendo oscilador: ${rx} ${ry}`);
       this.oscillator[hand]?.setFrequency(ry);
-      this.oscillator[hand]?.setGain(rx);
+      this.oscillator[hand]?.setGain(Math.min(1, Math.abs(rx)));
     }
   }
 
@@ -123,7 +123,6 @@ class Pluramotionofono {
         }
       }
       this.camera.drawVideo();
-      this.camera.drawResults(hands);
     } catch (error) {
       this.detector.dispose();
       this.detector = null;
