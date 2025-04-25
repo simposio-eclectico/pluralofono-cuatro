@@ -51,16 +51,48 @@ Pluralófono es una aplicación web interactiva que permite controlar la generac
 - El archivo principal es `src/index.ts`.
 - Se inicializa la webcam y un detector de manos usando TensorFlow.js y MediaPipe.
 - Se utiliza Fingerpose para reconocer gestos a partir de los puntos clave de la mano.
-- Según el gesto y la posición detectada, se controla un oscilador de audio (frecuencia, volumen, tipo de onda) usando la Web Audio API.
+- Según el gesto y la posición detectada, se controla un sistema de **osciladores de audio independientes para cada dedo** usando la Web Audio API.
 - El flujo principal es:
   1. Inicialización de cámara y detector.
   2. Loop de predicción de gestos en tiempo real.
   3. Control de sonido según la mano y el gesto detectado.
 
+### Sistema de Osciladores por Dedo
+
+Cada dedo de cada mano tiene su propio oscilador, con un tipo de onda diferente:
+
+| Dedo   | Tipo de onda |
+|--------|--------------|
+| Pulgar | Sine         |
+| Índice | Square       |
+| Medio  | Triangle     |
+| Anular | Sawtooth     |
+| Meñique| Triangle     |
+
+- **Extiende un dedo** para activar su oscilador.
+- **La posición vertical (Y) de la punta del dedo** controla la frecuencia (más arriba = más agudo, más abajo = más grave).
+- **La posición horizontal (X)** controla la ganancia/volumen.
+- Puedes tocar varios dedos a la vez, generando acordes o texturas.
+- Si un dedo no está extendido, su oscilador se silencia automáticamente.
+
+### Visualización interactiva
+
+- El canvas muestra la mano y los dedos detectados.
+- Se implementa un efecto de "trailing" visual: los movimientos recientes de la mano dejan una estela semitransparente durante ~300ms, haciendo la experiencia más fluida y artística.
+
+### Ejemplo de uso
+
+- Abre la app y permite acceso a la webcam.
+- Extiende distintos dedos y muévelos para explorar sonidos y timbres.
+- Usa ambas manos para mayor complejidad sonora.
+
+Para detalles sobre los gestos reconocidos, revisa `src/shared/signs.ts`.
+
 ## Créditos
 
 - Basado en tecnologías de Google MediaPipe, TensorFlow.js y Fingerpose.
 - Desarrollado para experimentación sonora y musical interactiva.
+- Colectivo Simposio Ecléctico
 
 ## Licencia
 
