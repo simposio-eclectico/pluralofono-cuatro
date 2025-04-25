@@ -1,4 +1,3 @@
-import * as mpHands from "@mediapipe/hands";
 import * as handdetection from "@tensorflow-models/hand-pose-detection";
 import "@tensorflow/tfjs-backend-webgl";
 import * as fp from "fingerpose";
@@ -57,10 +56,10 @@ class Pluramotionofono {
     const _detector = await handdetection.createDetector(
       handdetection.SupportedModels.MediaPipeHands,
       {
-        runtime: "mediapipe",
+        runtime: "tfjs",
         modelType: "full",
         maxHands: 2,
-        solutionPath: `https://cdn.jsdelivr.net/npm/@mediapipe/hands@${mpHands.VERSION}`,
+        // solutionPath: `https://cdn.jsdelivr.net/npm/@mediapipe/hands@${mpHands.VERSION}`,
       }
     );
     return new Pluramotionofono(_camera, _detector);
