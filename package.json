@@ -1,5 +1,5 @@
 {
-  "name": "pluralofono-tensorflow",
+  "name": "pluralofono-cuatro",
   "version": "0.0.1",
   "description": "Pluralófono con detección de movimientos de mano",
   "main": "index.js",

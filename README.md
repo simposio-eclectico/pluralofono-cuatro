@@ -28,20 +28,16 @@
 
 1. **Clona el repositorio:**
    ```bash
-   git clone <url-del-repositorio>
-   cd pluralofono-tensorflow
+   git clone https://github.com/simposio-eclectico/pluralofono-cuatro   
+   cd pluralofono-cuatro
    ```
 2. **Instala las dependencias:**
    ```bash
    npm install
-   # o
-   yarn install
    ```
 3. **Inicia la aplicación:**
    ```bash
    npm run start
-   # o
-   yarn start
    ```
 4. Abre tu navegador en [http://localhost:5173](http://localhost:5173) (o el puerto indicado por Vite).
 
